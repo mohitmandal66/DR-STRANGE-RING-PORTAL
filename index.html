@@ -3,23 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arcane AR - Sound Enabled</title>
+    <title>Arcane Runic AR</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: serif; }
         canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; transform: scaleX(-1); }
         video { display: none; }
-        /* UI for Audio Activation */
-        #ui { 
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
-            color: gold; z-index: 10; text-align: center; pointer-events: none; 
-            text-shadow: 0 0 10px orange; font-weight: bold; letter-spacing: 1px;
-        }
+        #ui { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); color: gold; z-index: 10; text-shadow: 0 0 10px orange; font-weight: bold; pointer-events: none; }
     </style>
 </head>
 <body>
-    <div id="ui">CLICK ANYWHERE TO ACTIVATE MAGIC SOUNDS</div>
+    <div id="ui">TAP TO CAST SPELLS</div>
     <video id="input_video"></video>
     <canvas id="output_canvas"></canvas>
 
@@ -33,11 +28,13 @@
     let handData = []; 
     let audioCtx = null;
 
-    // --- AUDIO SYSTEM ---
+    // --- ANCIENT RUNIC CHARACTERS ---
+    const runes = "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛟᛞ⚡∑∏Ω";
+
     function initAudio() {
         if (audioCtx) return;
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        document.getElementById('ui').style.opacity = 0; // Hide message once active
+        document.getElementById('ui').style.opacity = 0;
     }
 
     function playFireSplash() {
@@ -47,109 +44,92 @@
         const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
         const noise = audioCtx.createBufferSource();
         noise.buffer = buffer;
-
         const filter = audioCtx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1200, now);
+        filter.frequency.setValueAtTime(1500, now);
         filter.frequency.exponentialRampToValueAtTime(100, now + 0.4);
-
         const gain = audioCtx.createGain();
         gain.gain.setValueAtTime(0.3, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(audioCtx.destination);
+        noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
         noise.start();
     }
 
-    function playSparkPop() {
+    function playSpark() {
         if (!audioCtx || Math.random() > 0.4) return;
-        const osc = audioCtx.createOscillator();
+        const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(3500 + Math.random() * 1500, audioCtx.currentTime);
+        o.type = 'square';
+        o.frequency.setValueAtTime(4000 + Math.random()*2000, audioCtx.currentTime);
         g.gain.setValueAtTime(0.04, audioCtx.currentTime);
-        g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.04);
-        osc.connect(g);
-        g.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.04);
+        g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.03);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + 0.03);
     }
 
-    // Initialize audio on first click
     window.addEventListener('mousedown', initAudio);
 
-    function spawnEmbers(x, y, count = 2) {
-        for(let i=0; i<count; i++) {
-            embers.push({
-                x, y,
-                vx: (Math.random() - 0.5) * 4,
-                vy: (Math.random() - 2) * 3,
-                life: 1.0,
-                size: Math.random() * 3
-            });
-            playSparkPop(); // Sound for every few sparks
-        }
-    }
-
-    function drawRealisticCircle(ctx, x, y, size, rotation, alpha = 1) {
+    function drawRunicCircle(ctx, x, y, size, rotation, alpha = 1) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(rotation);
         ctx.globalAlpha = alpha;
         ctx.globalCompositeOperation = 'lighter';
-        const gold = `rgba(255, 180, 50, ${alpha})`;
-        const hotWhite = `rgba(255, 255, 200, ${alpha})`;
 
-        ctx.shadowBlur = 30;
+        const gold = `rgba(255, 180, 50, ${alpha})`;
+        ctx.shadowBlur = 20;
         ctx.shadowColor = "orange";
         ctx.strokeStyle = gold;
-        ctx.lineWidth = 4;
+        ctx.fillStyle = gold;
+        ctx.lineWidth = 3;
 
+        // 1. Double Outer Rings
         ctx.beginPath(); ctx.arc(0, 0, size * 0.5, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.arc(0, 0, size * 0.48, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, size * 0.42, 0, Math.PI * 2); ctx.stroke();
 
+        // 2. SPELLING RUNES (The Text)
+        ctx.font = `${size * 0.07}px serif`;
+        ctx.textAlign = "center";
+        const charCount = 12;
+        for (let i = 0; i < charCount; i++) {
+            ctx.save();
+            ctx.rotate((i * Math.PI * 2) / charCount);
+            ctx.fillText(runes[i % runes.length], 0, -size * 0.45);
+            ctx.restore();
+        }
+
+        // 3. Inner Geometry (Geometric Sigil)
         ctx.lineWidth = 1.5;
-        for (let i = 0; i < 24; i++) {
-            ctx.rotate(Math.PI / 12);
-            ctx.beginPath();
-            ctx.moveTo(size * 0.42, 0);
-            ctx.lineTo(size * 0.46, (i % 2 === 0 ? 5 : -5));
-            ctx.stroke();
+        for(let r=0; r < 3; r++) {
+            ctx.rotate(Math.PI / 3);
+            ctx.strokeRect(-size * 0.25, -size * 0.25, size * 0.5, size * 0.5);
         }
 
-        ctx.strokeStyle = hotWhite;
-        ctx.shadowBlur = 10;
-        for(let r=0; r < 2; r++) {
-            ctx.rotate(Math.PI / 4);
-            ctx.strokeRect(-size * 0.3, -size * 0.3, size * 0.6, size * 0.6);
-        }
-        ctx.beginPath(); ctx.arc(0, 0, size * 0.15, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
     }
 
     function onResults(results) {
         canvasElement.width = window.innerWidth;
         canvasElement.height = window.innerHeight;
-        ctx.save();
-        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
         ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-        embers.forEach((p, i) => {
+        // Update Embers
+        for (let i = embers.length - 1; i >= 0; i--) {
+            let p = embers[i];
             p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-            ctx.fillStyle = `rgba(255, 150, 0, ${p.life})`;
+            ctx.fillStyle = `rgba(255, ${100 + p.life*155}, 0, ${p.life})`;
             ctx.fillRect(p.x, p.y, p.size, p.size);
             if(p.life <= 0) embers.splice(i, 1);
-        });
+        }
 
+        // Update Thrown Projectiles
         for (let i = thrownRings.length - 1; i >= 0; i--) {
             let r = thrownRings[i];
-            r.x += r.vx; r.y += r.vy; r.rot += 0.05; r.life -= 0.015;
-            drawRealisticCircle(ctx, r.x, r.y, r.size, r.rot, r.life);
+            r.x += r.vx; r.y += r.vy; r.rot += 0.08; r.life -= 0.015;
+            drawRunicCircle(ctx, r.x, r.y, r.size, r.rot, r.life);
+            if(Math.random() > 0.5) playSpark();
             if (r.life <= 0) thrownRings.splice(i, 1);
         }
 
@@ -161,17 +141,13 @@
                 const vx = x - handData[index].lx;
                 const vy = y - handData[index].ly;
                 const speed = Math.sqrt(vx*vx + vy*vy);
-                const dist = Math.hypot(landmarks[4].x-landmarks[8].x, landmarks[4].y-landmarks[8].y) * canvasElement.width;
-                const size = dist * 3;
-                const angle = Math.atan2(landmarks[9].y - landmarks[0].y, landmarks[9].x - landmarks[0].x) + Math.PI/2;
+                const size = Math.hypot(landmarks[4].x-landmarks[8].x, landmarks[4].y-landmarks[8].y) * canvasElement.width * 3.5;
 
                 if (handData[index].can) {
-                    drawRealisticCircle(ctx, x, y, size, angle);
-                    spawnEmbers(x, y, 1);
-
-                    if (speed > 45 && size > 40) {
-                        thrownRings.push({ x, y, vx: vx * 0.8, vy: vy * 0.8, size, rot: angle, life: 1.0 });
-                        playFireSplash(); // PLAY SOUND ON THROW
+                    drawRunicCircle(ctx, x, y, size, Date.now() * 0.002);
+                    if (speed > 50 && size > 40) {
+                        thrownRings.push({ x, y, vx: vx * 0.9, vy: vy * 0.9, size, rot: 0, life: 1.0 });
+                        playFireSplash();
                         handData[index].can = false;
                         setTimeout(() => handData[index].can = true, 400);
                     }
@@ -179,11 +155,10 @@
                 handData[index].lx = x; handData[index].ly = y;
             });
         }
-        ctx.restore();
     }
 
     const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-    hands.setOptions({ maxNumHands: 4, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+    hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.7 });
     hands.onResults(onResults);
 
     const camera = new Camera(videoElement, {
